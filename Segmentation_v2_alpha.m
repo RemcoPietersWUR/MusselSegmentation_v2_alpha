@@ -86,7 +86,7 @@ for slice = 1:px_z
     B = bwboundaries(BWhull(:,:,slice),'noholes');
     if isempty(B)
         TM(:,:,slice)=false(size(BWhull(:,:,slice));
-         thickness{slice}=0;
+        thickness{slice}=0;
     else
         A= B{1,1};
         
@@ -238,25 +238,34 @@ for slice = 1:px_z
     TM(:,:,slice)=imclose(TM(:,:,slice),se2);
 end
 for slice = 1:px_z
-    Bound = bwboundaries(TM(:,:,slice));
-    boundlength=cellfun(@numel,Bound);
-    [~,idx]=sort(boundlength,'descend');
-    TM2=false(size(TM(:,:,slice)));
-    TM3=false(size(TM(:,:,slice)));
-    boundary1=Bound{idx(1)};
-    for id=1:length(boundary1)
-        TM2(boundary1(id,1),boundary1(id,2))=true;
+    if thickness{slice}==0
+        disp(['No boundry found for slice ', num2str(slice)])
+    else
+        
+        Bound = bwboundaries(TM(:,:,slice));
+        boundlength=cellfun(@numel,Bound);
+        [~,idx]=sort(boundlength,'descend');
+        TM2=false(size(TM(:,:,slice)));
+        TM3=false(size(TM(:,:,slice)));
+        boundary1=Bound{idx(1)};
+        for id=1:length(boundary1)
+            TM2(boundary1(id,1),boundary1(id,2))=true;
+        end
+        boundary2=Bound{idx(2)};
+        if isempty(boundary2)
+            disp('No inner bound found')
+        else
+            for id=1:length(boundary2)
+                TM3(boundary2(id,1),boundary2(id,2))=true;
+            end
+        end
+        TM(:,:,slice)=imabsdiff(imfill(TM2,'holes'),imfill(TM3,'holes'));
+        clear bound
+        clear boundlength
+        clear idx
+        clear TM2
+        clear TM3
     end
-    boundary2=Bound{idx(2)};
-    for id=1:length(boundary2)
-        TM3(boundary2(id,1),boundary2(id,2))=true;
-    end
-    TM(:,:,slice)=imabsdiff(imfill(TM2,'holes'),imfill(TM3,'holes'));
-    clear bound
-    clear boundlength
-    clear idx
-    clear TM2
-    clear TM3
 end
 slider(FirstSlice,LastSlice,IMrot,TM,'Area');
 
