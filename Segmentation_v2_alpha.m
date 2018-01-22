@@ -18,6 +18,7 @@ conn = 8; %Connectivity for the connected components 2D: 4 or 8
 %Structual closing element lines
 se = strel('disk',5);
 se2=strel('disk',10);
+factor = 80;
 
 
 %% Get file info CT images
@@ -109,7 +110,6 @@ for slice = 1:px_z
     % axis equal
     
     %Normal lines to boundary factor determines the length
-    factor = 50;
     for i=1:length(delta)
         %round to full pixel
         Y(i,:)=round([y(i)-factor*delta(i,1),y(i)],0);
@@ -257,13 +257,13 @@ slider(FirstSlice,LastSlice,IMrot,TM,'Area');
 %first for slice 1 to determine size table
 stats = regionprops('table',TM(:,:,1),IMrot(:,:,1),'Area',...
     'BoundingBox','Centroid','Perimeter','MaxIntensity','MeanIntensity',...
-    'MinIntensity','WeightedCentroid');
+    'MinIntensity','WeightedCentroid','ConvexArea');
 Slice = ones(height(stats),1).*1;
 SliceProps = [table(Slice),stats];
 for slice = 2:px_z
 stats = regionprops('table',TM(:,:,slice),IMrot(:,:,slice),'Area',...
     'BoundingBox','Centroid','Perimeter','MaxIntensity','MeanIntensity',...
-    'MinIntensity','WeightedCentroid');
+    'MinIntensity','WeightedCentroid','ConvexArea');
 Slice = ones(height(stats),1).*slice;
 SliceProps = [SliceProps;[table(Slice),stats]];
 end
