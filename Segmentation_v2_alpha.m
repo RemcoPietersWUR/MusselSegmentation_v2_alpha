@@ -84,147 +84,154 @@ end
 %Boundary of convex hull
 for slice = 1:px_z
     B = bwboundaries(BWhull(:,:,slice),'noholes');
-    A= B{1,1};
-    
-    %Displacement between points
-    for idx = 1:(length(A)-1)
-        delta(idx,:)=A(idx+1,:)-A(idx,:);
-    end
-    %Compute the outline based on displacement delta
-    x = zeros(length(A),1);
-    y = zeros(length(A),1);
-    x(1)=A(1,1);
-    y(1)=A(1,2);
-    for idx = 1:length(delta)
-        x(idx+1) = x(idx) + delta(idx,1);
-        y(idx+1) = y(idx) + delta(idx,2);
-    end
-    %Normalize delta
-    for idx = 1:length(delta)
-        delta(idx,:) = delta(idx,:) / norm(delta(idx,:));
-    end
-    % %Draw normal lines
-    % for i=1:length(delta)
-    %     line([x(i)+delta(i,2), x(i)],[y(i)-delta(i,1), y(i)]);
-    % end
-    % axis equal
-    
-    %Normal lines to boundary factor determines the length
-    for i=1:length(delta)
-        %round to full pixel
-        Y(i,:)=round([y(i)-factor*delta(i,1),y(i)],0);
-        X(i,:)=round([x(i)+factor*delta(i,2), x(i)],0);
-    end
-    
-    %Gradient
-    Gval = cell(1,length(delta));
-    for i=1:length(delta)
-        %March inwards convexhull boundary is start point
-        %XX & YY are local xy values to sample gray value
-        Xedge = x(i);
-        Yedge = y(i);
-        if delta(i,2)>0
-            XX=Xedge:X(i,1);
-            if delta(i,1)<0
-                YY=Yedge:Y(i,1);
-            elseif delta(i,1)>0
-                YY=flip(Y(i,1):Yedge);
-            else
-                YY=Yedge*ones(1,numel(XX));
-            end
-        elseif delta(i,2)<0
-            XX=flip(X(i,1):Xedge);
-            if delta(i,1)<0
-                YY=Yedge:Y(i,1);
-            elseif delta(i,1)>0
-                YY=flip(Y(i,1):Yedge);
-            else
-                YY=Yedge*ones(1,numel(XX));
-            end
-        else
-            if delta(i,1)<0
-                YY=Yedge:Y(i,1);
-            else
-                YY=flip(Y(i,1):Yedge);
-            end
-            XX=Xedge*ones(1,numel(YY));
+    if isempty(B)
+        TM(:,:,slice)=false(size(BWhull(:,:,slice));
+         thickness{slice}=0;
+    else
+        A= B{1,1};
+        
+        %Displacement between points
+        for idx = 1:(length(A)-1)
+            delta(idx,:)=A(idx+1,:)-A(idx,:);
         end
-        for idp=1:numel(XX)
-            Gval_loc(idp) = IMrot(XX(idp),YY(idp),slice);
+        %Compute the outline based on displacement delta
+        x = zeros(length(A),1);
+        y = zeros(length(A),1);
+        x(1)=A(1,1);
+        y(1)=A(1,2);
+        for idx = 1:length(delta)
+            x(idx+1) = x(idx) + delta(idx,1);
+            y(idx+1) = y(idx) + delta(idx,2);
         end
-        clear XX
-        clear YY
-        Gval{1,i}=Gval_loc;
-        clear Gval_loc
-    end
-    
-    %Compute derivatives, change to signed int16
-    for section = 1:length(delta)
-        Gval_s= int16(Gval{1,section});
-        Gval_d1{1,section} = diff(Gval_s);
-        Gval_d2{1,section} = diff(Gval_s,2);
-        clear Gval_s
-    end
-    
-    %Find outer- en innerline & plot
-%     figure
-%     imshow(IMrot(:,:,slice))
-%     hold on
-%     plot(A(:,2),A(:,1))%A is convexhull boundary
-    outline = zeros(2,length(delta));
-    inline = zeros(2,length(delta));
-    for i = 1:length(delta)
-        %March inwards convexhull boundary is start point
-        Xedge = x(i);
-        Yedge = y(i);
-        if delta(i,2)>0
-            XX=Xedge:X(i,1);
-            if delta(i,1)<0
-                YY=Yedge:Y(i,1);
-            elseif delta(i,1)>0
-                YY=flip(Y(i,1):Yedge);
-            else
-                YY=Yedge*ones(1,numel(XX));
-            end
-        elseif delta(i,2)<0
-            XX=flip(X(i,1):Xedge);
-            if delta(i,1)<0
-                YY=Yedge:Y(i,1);
-            elseif delta(i,1)>0
-                YY=flip(Y(i,1):Yedge);
-            else
-                YY=Yedge*ones(1,numel(XX));
-            end
-        else
-            if delta(i,1)<0
-                YY=Yedge:Y(i,1);
-            else
-                YY=flip(Y(i,1):Yedge);
-            end
-            XX=Xedge*ones(1,numel(YY));
+        %Normalize delta
+        for idx = 1:length(delta)
+            delta(idx,:) = delta(idx,:) / norm(delta(idx,:));
         end
-        [~,in_edg]=max(Gval_d1{1,i});
-        [~,out_edg]=min(Gval_d1{1,i});
-%         plot(YY(in_edg),XX(in_edg),'.r')
-%         plot(YY(out_edg),XX(out_edg),'.g')
-        outline(:,i)=[XX(in_edg),YY(in_edg)];
-        inline(:,i)=[XX(out_edg),YY(out_edg)];
-        clear XX
-        clear YY
+        % %Draw normal lines
+        % for i=1:length(delta)
+        %     line([x(i)+delta(i,2), x(i)],[y(i)-delta(i,1), y(i)]);
+        % end
+        % axis equal
+        
+        %Normal lines to boundary factor determines the length
+        for i=1:length(delta)
+            %round to full pixel
+            Y(i,:)=round([y(i)-factor*delta(i,1),y(i)],0);
+            X(i,:)=round([x(i)+factor*delta(i,2), x(i)],0);
+        end
+        
+        %Gradient
+        Gval = cell(1,length(delta));
+        for i=1:length(delta)
+            %March inwards convexhull boundary is start point
+            %XX & YY are local xy values to sample gray value
+            Xedge = x(i);
+            Yedge = y(i);
+            if delta(i,2)>0
+                XX=Xedge:X(i,1);
+                if delta(i,1)<0
+                    YY=Yedge:Y(i,1);
+                elseif delta(i,1)>0
+                    YY=flip(Y(i,1):Yedge);
+                else
+                    YY=Yedge*ones(1,numel(XX));
+                end
+            elseif delta(i,2)<0
+                XX=flip(X(i,1):Xedge);
+                if delta(i,1)<0
+                    YY=Yedge:Y(i,1);
+                elseif delta(i,1)>0
+                    YY=flip(Y(i,1):Yedge);
+                else
+                    YY=Yedge*ones(1,numel(XX));
+                end
+            else
+                if delta(i,1)<0
+                    YY=Yedge:Y(i,1);
+                else
+                    YY=flip(Y(i,1):Yedge);
+                end
+                XX=Xedge*ones(1,numel(YY));
+            end
+            for idp=1:numel(XX)
+                Gval_loc(idp) = IMrot(XX(idp),YY(idp),slice);
+            end
+            clear XX
+            clear YY
+            Gval{1,i}=Gval_loc;
+            clear Gval_loc
+        end
+        
+        %Compute derivatives, change to signed int16
+        for section = 1:length(delta)
+            Gval_s= int16(Gval{1,section});
+            Gval_d1{1,section} = diff(Gval_s);
+            Gval_d2{1,section} = diff(Gval_s,2);
+            clear Gval_s
+        end
+        
+        %Find outer- en innerline & plot
+        %     figure
+        %     imshow(IMrot(:,:,slice))
+        %     hold on
+        %     plot(A(:,2),A(:,1))%A is convexhull boundary
+        outline = zeros(2,length(delta));
+        inline = zeros(2,length(delta));
+        for i = 1:length(delta)
+            %March inwards convexhull boundary is start point
+            Xedge = x(i);
+            Yedge = y(i);
+            if delta(i,2)>0
+                XX=Xedge:X(i,1);
+                if delta(i,1)<0
+                    YY=Yedge:Y(i,1);
+                elseif delta(i,1)>0
+                    YY=flip(Y(i,1):Yedge);
+                else
+                    YY=Yedge*ones(1,numel(XX));
+                end
+            elseif delta(i,2)<0
+                XX=flip(X(i,1):Xedge);
+                if delta(i,1)<0
+                    YY=Yedge:Y(i,1);
+                elseif delta(i,1)>0
+                    YY=flip(Y(i,1):Yedge);
+                else
+                    YY=Yedge*ones(1,numel(XX));
+                end
+            else
+                if delta(i,1)<0
+                    YY=Yedge:Y(i,1);
+                else
+                    YY=flip(Y(i,1):Yedge);
+                end
+                XX=Xedge*ones(1,numel(YY));
+            end
+            [~,in_edg]=max(Gval_d1{1,i});
+            [~,out_edg]=min(Gval_d1{1,i});
+            %         plot(YY(in_edg),XX(in_edg),'.r')
+            %         plot(YY(out_edg),XX(out_edg),'.g')
+            outline(:,i)=[XX(in_edg),YY(in_edg)];
+            inline(:,i)=[XX(out_edg),YY(out_edg)];
+            thick=sqrt(abs(XX(in_edg)-XX(out_edge))^2+abs(YY(in_edg)-YY(out_edge))^2);
+            thickness{slice}=thick;
+            clear XX
+            clear YY
+        end
+        
+        
+        TMout=false(size(BW(:,:,slice)));
+        TMin=false(size(BW(:,:,slice)));
+        for i = 1:length(delta)
+            TMout(outline(1,i),outline(2,i))=1;
+            TMin(inline(1,i),inline(2,i))=1;
+        end
+        TMout_c=imclose(TMout,se);
+        TMin_c=imclose(TMin,se);
+        TM(:,:,slice)=logical(imadd(TMout_c,TMin_c));
+        %Clean up
+        clear delta
     end
-    
-    
-    TMout=false(size(BW(:,:,slice)));
-    TMin=false(size(BW(:,:,slice)));
-    for i = 1:length(delta)
-        TMout(outline(1,i),outline(2,i))=1;
-        TMin(inline(1,i),inline(2,i))=1;
-    end
-    TMout_c=imclose(TMout,se);
-    TMin_c=imclose(TMin,se);
-    TM(:,:,slice)=logical(imadd(TMout_c,TMin_c));
-    %Clean up
-    clear delta
 end
 for slice = 1:px_z
     TM(:,:,slice)=bwmorph(TM(:,:,slice),'bridge');
@@ -240,7 +247,7 @@ for slice = 1:px_z
     for id=1:length(boundary1)
         TM2(boundary1(id,1),boundary1(id,2))=true;
     end
-     boundary2=Bound{idx(2)};
+    boundary2=Bound{idx(2)};
     for id=1:length(boundary2)
         TM3(boundary2(id,1),boundary2(id,2))=true;
     end
@@ -258,21 +265,29 @@ slider(FirstSlice,LastSlice,IMrot,TM,'Area');
 stats = regionprops('table',TM(:,:,1),IMrot(:,:,1),'Area',...
     'BoundingBox','Centroid','Perimeter','MaxIntensity','MeanIntensity',...
     'MinIntensity','WeightedCentroid','ConvexArea');
-Slice = ones(height(stats),1).*1;
-SliceProps = [table(Slice),stats];
+Thickness_median=median(thickness{1});
+Thickness_mean=mean(thickness{1});
+Thickness=table(Thickness_median,Thickness_mean);
+stats2=[stats,Thickness];
+Slice = ones(height(stats2),1).*1;
+SliceProps = [table(Slice),stats2];
 for slice = 2:px_z
-stats = regionprops('table',TM(:,:,slice),IMrot(:,:,slice),'Area',...
-    'BoundingBox','Centroid','Perimeter','MaxIntensity','MeanIntensity',...
-    'MinIntensity','WeightedCentroid','ConvexArea');
-Slice = ones(height(stats),1).*slice;
-SliceProps = [SliceProps;[table(Slice),stats]];
+    stats = regionprops('table',TM(:,:,slice),IMrot(:,:,slice),'Area',...
+        'BoundingBox','Centroid','Perimeter','MaxIntensity','MeanIntensity',...
+        'MinIntensity','WeightedCentroid','ConvexArea');
+    Thickness_median=median(thickness{slice});
+    Thickness_mean=mean(thickness{slice});
+    Thickness=table(Thickness_median,Thickness_mean);
+    stats2=[stats,Thickness];
+    Slice = ones(height(stats2),1).*slice;
+    SliceProps = [SliceProps;[table(Slice),stats2]];
 end
 [filenameProps, pathnameProps] = uiputfile('ShellProps.xlsx',...
-                       'Save file');
+    'Save file');
 if isequal(filenameProps,0) || isequal(pathnameProps,0)
-   disp('User selected Cancel')
+    disp('User selected Cancel')
 else
-   writetable(SliceProps,fullfile(pathnameProps,filenameProps));
+    writetable(SliceProps,fullfile(pathnameProps,filenameProps));
 end
 
 %Plots
@@ -291,4 +306,4 @@ zlim([1,px_z])
 xlabel('X (px)')
 ylabel('Y (px)')
 zlabel('Height (px)')
-title('Centroid of shell part (Blue none weighted,Red density weighted)')    
+title('Centroid of shell part (Blue none weighted,Red density weighted)')
